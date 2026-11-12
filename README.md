@@ -34,9 +34,3 @@ Everything else (ENI, BKW, symbol, NAME, DESCRIPTION, calendars, unit, currency 
 - **A yellow warning means "check first".** It shows when no symbol of that template has the field in the current mapping files, so the column may not exist in GDM.
 - **Your data stays on your computer.** The page runs fully in your browser and does not send it anywhere.
 
-## Hosting on GitHub Pages
-
-1. Put `index.html` and this `README.md` in a GitHub repository.
-2. Go to **Settings → Pages**.
-3. Under **Source**, choose **Deploy from a branch**, pick `main` and `/ (root)`, and click **Save**.
-4. After a minute, the page is live at `https://<your-username>.github.io/<repo-name>/`.
