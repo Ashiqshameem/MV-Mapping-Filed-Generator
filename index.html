@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GDM–MV mapping field generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF0F3; --surface:#FFFFFF; --ink:#18232E; --muted:#5A6774; --line:#CBD3DB;
+  --accent:#2440B8; --accent-ink:#FFFFFF; --accent-soft:#E3E8FA;
+  --warn:#8A5A0B; --warn-soft:#FBF0D9; --ok:#1E6B47; --ok-soft:#DFF2E8; --err:#A12B2B; --err-soft:#FBE4E4;
+  --code-bg:#F5F7F9;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#121820; --surface:#1A222C; --ink:#E4E9EE; --muted:#97A3AF; --line:#2E3A47;
+    --accent:#8DA2FF; --accent-ink:#0E1630; --accent-soft:#232E55;
+    --warn:#F0C26B; --warn-soft:#3A2E14; --ok:#7BD3A6; --ok-soft:#173326; --err:#F19A9A; --err-soft:#3D1D1D;
+    --code-bg:#151C24; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121820; --surface:#1A222C; --ink:#E4E9EE; --muted:#97A3AF; --line:#2E3A47;
+  --accent:#8DA2FF; --accent-ink:#0E1630; --accent-soft:#232E55;
+  --warn:#F0C26B; --warn-soft:#3A2E14; --ok:#7BD3A6; --ok-soft:#173326; --err:#F19A9A; --err-soft:#3D1D1D;
+  --code-bg:#151C24; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:28px 20px 60px}
+header h1{font-size:26px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+header p{margin:0;color:var(--muted);max-width:68ch}
+.uri-demo{margin-top:16px;font:500 13.5px/1.4 "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto;white-space:nowrap}
+.uri-demo .fixed{color:var(--muted)}
+.uri-demo .swap{color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 4px}
+section.step{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;margin-top:18px}
+.step-head{display:flex;gap:12px;align-items:baseline;margin-bottom:10px}
+.step-num{flex:none;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:600;font-size:13px}
+.step h2{font-size:17px;font-weight:600;margin:0}
+.step .hint{color:var(--muted);font-size:13.5px;margin:2px 0 12px;max-width:75ch}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+textarea{width:100%;min-height:150px;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--code-bg);color:var(--ink);font:13px/1.45 "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre;overflow-x:auto}
+textarea:focus,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.row + .row{margin-top:10px}
+button{font:inherit;font-size:14px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 13px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:500}
+button:disabled{opacity:.45;cursor:not-allowed}
+select,input[type=text]{font:inherit;font-size:14px;padding:6px 9px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+label.check{display:inline-flex;gap:7px;align-items:center;font-size:14px;cursor:pointer}
+.headers{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 14px}
+.headers span{font:12.5px "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;padding:3px 7px;border-radius:5px;background:var(--code-bg);border:1px solid var(--line)}
+.headers span.key{border-color:var(--accent);color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);font:500 12.5px "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;cursor:pointer;user-select:none;background:var(--surface)}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chip:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.msg{font-size:13.5px;border-radius:7px;padding:8px 11px;margin-top:10px}
+.msg.warn{background:var(--warn-soft);color:var(--warn)}
+.msg.err{background:var(--err-soft);color:var(--err)}
+.msg.ok{background:var(--ok-soft);color:var(--ok)}
+.msg ul{margin:4px 0 0;padding-left:18px}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:top}
+th{background:var(--code-bg);font-weight:600;font-size:12.5px;position:sticky;top:0}
+td.mono{font-size:12.5px}
+tr:last-child td{border-bottom:none}
+tr.ref td{color:var(--muted)}
+td .changed{color:var(--accent);font-weight:500}
+.suffix-input{width:150px;font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+.src{font-size:12px;color:var(--muted)}
+.flag{font-size:12px;color:var(--warn)}
+.empty{color:var(--muted);font-size:14px;padding:14px 2px}
+.summary{display:flex;flex-wrap:wrap;gap:18px;font-size:14px;margin-top:4px}
+.summary b{font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+@media (max-width:600px){.wrap{padding:20px 14px 48px}header h1{font-size:22px}section.step{padding:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>GDM–MV mapping field generator</h1>
+  <p>Paste an existing mapping row for a symbol, pick the fields you need, and get new rows that copy every property from it. Only <b>FIELD</b> and the last part of <b>MODEL URI</b> change.</p>
+  <div class="uri-demo"><span class="fixed">model://EEX_FUT_CEZ/EU.EL.DE.EEX.B.PBL.20260101/</span><span class="swap">SETTLE → OPEN / HIGH / LOW</span></div>
+</header>
+
+<section class="step" aria-labelledby="s1">
+  <div class="step-head"><span class="step-num">1</span><h2 id="s1">Paste the mapping rows</h2></div>
+  <p class="hint">Copy one or more full rows straight from Excel (tab-separated) or from the CSV. The header row is optional. You can paste several symbols at once; the CLOSE row of each symbol is used as the reference.</p>
+  <div class="row">
+    <label for="fmt">Column layout</label>
+    <select id="fmt">
+      <option value="auto">Detect from paste</option>
+      <option value="24">24 columns (GDM_MV_Mapping_File)</option>
+      <option value="22">22 columns (E–H, I–J files)</option>
+    </select>
+  </div>
+  <div class="headers" id="headers" aria-label="Expected columns"></div>
+  <textarea id="input" spellcheck="false" placeholder="TRUE	TRUE	/E.DB01F26	CLOSE		EEX_F	model://EEX_FUT_CEZ/EU.EL.DE.EEX.B.PBL.20260101/SETTLE	1D	…"></textarea>
+  <div class="row" style="margin-top:10px">
+    <button class="primary" id="parseBtn">Read rows</button>
+    <button id="clearBtn">Clear</button>
+    <button id="sampleBtn">Load an example</button>
+  </div>
+  <div id="parseMsg"></div>
+  <div id="symbols"></div>
+</section>
+
+<section class="step" aria-labelledby="s2">
+  <div class="step-head"><span class="step-num">2</span><h2 id="s2">Choose the fields to create</h2></div>
+  <p class="hint">Pick one, a few, or all. Fields a symbol already has in your paste are skipped for that symbol unless you turn that off.</p>
+  <div class="row">
+    <button id="presetOHL">Open, high, low</button>
+    <button id="selAll">Select all</button>
+    <button id="selNone">Clear selection</button>
+    <label class="check"><input type="checkbox" id="skipExisting" checked> Skip fields already in the paste</label>
+  </div>
+  <div class="chips" id="chips" style="margin-top:12px" role="group" aria-label="Fields"></div>
+</section>
+
+<section class="step" aria-labelledby="s3">
+  <div class="step-head"><span class="step-num">3</span><h2 id="s3">Check the MODEL URI endings</h2></div>
+  <p class="hint">Each field maps to a GDM column at the end of the URI. Defaults come from the patterns in the three reference files, using the symbol’s template when it has its own rule (for example, the HE_ assessment templates map HIGH to ASK and LOW to BID). Edit any ending to override it for all symbols.</p>
+  <div id="suffixTable"></div>
+</section>
+
+<section class="step" aria-labelledby="s4">
+  <div class="step-head"><span class="step-num">4</span><h2 id="s4">Review and export</h2></div>
+  <div class="row">
+    <label class="check"><input type="checkbox" id="incHeader" checked> Include header row</label>
+    <label class="check"><input type="checkbox" id="incRef"> Include the reference rows</label>
+  </div>
+  <div class="summary" id="summary"></div>
+  <div id="warnings"></div>
+  <div id="output"></div>
+  <div class="row" style="margin-top:14px">
+    <button class="primary" id="copyTsv" disabled>Copy for Excel</button>
+    <button id="copyCsv" disabled>Copy as CSV</button>
+    <button id="dlCsv" disabled hidden>Download CSV</button>
+  </div>
+</section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const REF = {"fields":["CLOSE","LOW","HIGH","OPEN","OPENINTEREST","VOLUME","EXCHANGEFORPHYSICAL","OTCVOLUME","EXCHANGEFORSWAP","VWAP","TRADEDVOLUMEEEX","MIDPOINT","TRADES","LASTTRADEPRICE","OPENINTERESTVOLUME","ONEXCHTRADEVOLUMEEEX","OFFEXCHTRADEVOLUMEEEX","OI","LAST","CHANGE","MID","VOLATILITY","ONEXCHTOTALVOLUME","IMPVOL","VOL"],"glob":{"CHANGE":"CHANGE","CLOSE":"SETTLE","EXCHANGEFORPHYSICAL":"EFPVOL","EXCHANGEFORSWAP":"EFSVOL","HIGH":"HIGH","IMPVOL":"IMPVOL","LAST":"LAST","LASTTRADEPRICE":"LAST","LOW":"LOW","MID":"MID","MIDPOINT":"MID","OFFEXCHTRADEVOLUMEEEX":"TRDREG_VOL","OI":"OI","ONEXCHTOTALVOLUME":"TRADED_CONT","ONEXCHTRADEVOLUMEEEX":"TRD_VOL","OPEN":"OPEN","OPENINTEREST":"OI","OPENINTERESTVOLUME":"OI_CONT_VOL","OTCVOLUME":"BLOCKVOL","TRADEDVOLUMEEEX":"VOL","TRADES":"TRADES","VOL":"VOL","VOLATILITY":"IMPVOL","VOLUME":"VOL","VWAP":"WAP"},"tmpl":{"ECB_FX":{"f":["CLOSE"],"o":{"CLOSE":"MID"}},"EEX_A":{"f":["CLOSE","HIGH","LOW","VOLUME"],"o":{"CLOSE":"PRICE"}},"EEX_EGIX":{"f":["CLOSE"],"o":{"CLOSE":"INDEX"}},"EEX_EMF":{"f":["CLOSE","HIGH","LASTTRADEPRICE","LOW","OI","ONEXCHTOTALVOLUME","OPEN","OPENINTEREST","OPENINTERESTVOLUME","TRADEDVOLUMEEEX","TRADES","VOL"],"o":{}},"EEX_EMS":{"f":["CLOSE","LAST","OPENINTEREST"],"o":{"CLOSE":"PRICE"}},"EEX_F":{"f":["CLOSE","HIGH","LASTTRADEPRICE","LOW","MIDPOINT","ONEXCHTRADEVOLUMEEEX","OPEN","OPENINTEREST","OPENINTERESTVOLUME","TRADEDVOLUMEEEX","TRADES","VOLUME"],"o":{"VOLUME":"TRADED_CONT"}},"EEX_GS":{"f":["CLOSE","HIGH","LASTTRADEPRICE","LOW","ONEXCHTRADEVOLUMEEEX","OPEN","VOLUME"],"o":{"ONEXCHTRADEVOLUMEEEX":"VOL","VOLUME":"TRADES"}},"EEX_NGF":{"f":["CLOSE","HIGH","LASTTRADEPRICE","LOW","OFFEXCHTRADEVOLUMEEEX","ONEXCHTRADEVOLUMEEEX","OPEN","OPENINTEREST","OPENINTERESTVOLUME","TRADEDVOLUMEEEX","TRADES","VOLUME"],"o":{"VOLUME":"TRADED_CONT"}},"EEX_NGP":{"f":["CLOSE","VOLUME"],"o":{"CLOSE":"INDEX"}},"EPEX_AUC_INTRA":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"EPEX_CAP_AUC":{"f":["CLOSE","VOLUME"],"o":{"CLOSE":"PRICE"}},"EPEX_DE15":{"f":["CLOSE","HIGH","LOW"],"o":{"CLOSE":"PRICE"}},"EPEX_INTRA_IND":{"f":["CLOSE"],"o":{"CLOSE":"INDEX"}},"EPEX_PANEU_INAU":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"EURIBOR":{"f":["CLOSE"],"o":{"CLOSE":"CLOSE"}},"EXAA_DA":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"GF_GOOS_PR":{"f":["CLOSE"],"o":{"CLOSE":"CLOSE"}},"GME":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"GME_EEC_TEE":{"f":["CLOSE","HIGH","LOW"],"o":{"CLOSE":"AVG"}},"GME_MGAS":{"f":["CLOSE","LOW"],"o":{"CLOSE":"WAP","LOW":"MINPRICE"}},"GME_MGPNG":{"f":["CLOSE"],"o":{"CLOSE":"AVG"}},"GME_MING":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"GME_MTNG":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"GME_PBNG":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"HE_EUELDLYIND":{"f":["CLOSE","VOL"],"o":{"CLOSE":"PRICE"}},"HE_EURELECASS":{"f":["CLOSE","HIGH","LOW"],"o":{"CLOSE":"MID","HIGH":"ASK","LOW":"BID"}},"HE_EURELECSP":{"f":["CLOSE"],"o":{"CLOSE":"SPREAD"}},"HE_EURNATGASASS":{"f":["CLOSE","HIGH","LOW","VOLUME"],"o":{"CLOSE":"MID","HIGH":"ASK","LOW":"BID"}},"ICE_ADM_1630":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"ICE_BASE_GREG":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_BEF":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","MIDPOINT","OPEN","OPENINTEREST","OTCVOLUME","VOLATILITY","VOLUME","VWAP"],"o":{}},"ICE_BEFIN_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","MIDPOINT","OPEN","OPENINTEREST","OTCVOLUME","VOLATILITY","VOLUME","VWAP"],"o":{}},"ICE_BRENT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_BRENT_1630":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_BRT_1030_MM":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_BRT_1230_MM":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_BRT_1430_MM":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_BRT_IND":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_BRT_MM":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_BRT_SG_MM":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_CA_FUT":{"f":["CLOSE","HIGH","LOW","OPEN","OPENINTEREST","VOLUME"],"o":{}},"ICE_CFI_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_CLR_FUT":{"f":["CLOSE"],"o":{}},"ICE_DBI_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","MIDPOINT","OPEN","OPENINTEREST","OTCVOLUME","VOLATILITY","VOLUME","VWAP"],"o":{}},"ICE_DEFIN_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","MIDPOINT","OPEN","OPENINTEREST","OTCVOLUME","VOLATILITY","VOLUME","VWAP"],"o":{}},"ICE_DNBP_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_DTTF_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_FRFIN_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","IMPVOL","LOW","MIDPOINT","OPEN","OPENINTEREST","OTCVOLUME","VOLATILITY","VOLUME","VWAP"],"o":{}},"ICE_GASOIL":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_GO_SG_MM":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_GO_US_MM":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_HO":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_HO_1630":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_HO_MM":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_H_NG":{"f":["CLOSE"],"o":{}},"ICE_IPB_OPT":{"f":["CLOSE"],"o":{"CLOSE":"EU.EL.IT.ICE.FIN.B.OPT.2025M09"}},"ICE_IPQ_OPT":{"f":["CLOSE"],"o":{"CLOSE":"EU.EL.IT.ICE.FIN.B.1XQ.OPT.2025Q03"}},"ICE_IPR_OPT":{"f":["CLOSE"],"o":{"CLOSE":"EU.EL.IT.ICE.FIN.B.1XCAL.OPT.2025Y"}},"ICE_ITFIN_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","IMPVOL","LOW","MIDPOINT","OPEN","OPENINTEREST","OTCVOLUME","VOLATILITY","VOLUME","VWAP"],"o":{}},"ICE_JKD_LNGBOM":{"f":["CLOSE"],"o":{}},"ICE_JKM_LNG":{"f":["CLOSE"],"o":{}},"ICE_LS_GO_1930":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_NBD_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_NBP_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_NCG":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_NEWC_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","MIDPOINT","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"MIDPOINT":"EU.CO.NEWC.ICE.COAL.FUT.2026M02MID"}},"ICE_NLF":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","MIDPOINT","OPEN","OPENINTEREST","OTCVOLUME","VOLATILITY","VOLUME","VWAP"],"o":{}},"ICE_NLFIN_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","MIDPOINT","OPEN","OPENINTEREST","OTCVOLUME","VOLATILITY","VOLUME","VWAP"],"o":{}},"ICE_NWE_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_OTC_ABO":{"f":["CLOSE"],"o":{}},"ICE_OTC_AD3":{"f":["CLOSE"],"o":{}},"ICE_OTC_AD3BOM":{"f":["CLOSE"],"o":{}},"ICE_OTC_ADF":{"f":["CLOSE"],"o":{}},"ICE_OTC_ADFBOM":{"f":["CLOSE"],"o":{}},"ICE_OTC_ADGBOM":{"f":["CLOSE"],"o":{}},"ICE_OTC_ADH":{"f":["CLOSE"],"o":{}},"ICE_OTC_ADHBOM":{"f":["CLOSE"],"o":{}},"ICE_OTC_ADI":{"f":["CLOSE"],"o":{}},"ICE_OTC_ADIBOM":{"f":["CLOSE"],"o":{}},"ICE_OTC_ADM":{"f":["CLOSE"],"o":{}},"ICE_OTC_ADV":{"f":["CLOSE"],"o":{}},"ICE_OTC_ADVBOM":{"f":["CLOSE"],"o":{}},"ICE_OTC_ADW":{"f":["CLOSE"],"o":{}},"ICE_OTC_ADWBOM":{"f":["CLOSE"],"o":{}},"ICE_OTC_AFS":{"f":["CLOSE"],"o":{}},"ICE_OTC_ARI":{"f":["CLOSE"],"o":{}},"ICE_OTC_ARK":{"f":["CLOSE"],"o":{}},"ICE_OTC_ARL":{"f":["CLOSE"],"o":{}},"ICE_OTC_ARN":{"f":["CLOSE"],"o":{}},"ICE_OTC_ARW":{"f":["CLOSE"],"o":{}},"ICE_OTC_BFH_FUT":{"f":["CLOSE"],"o":{}},"ICE_OTC_DBF":{"f":["CLOSE"],"o":{}},"ICE_OTC_GOH":{"f":["CLOSE"],"o":{}},"ICE_OTC_GPF":{"f":["CLOSE"],"o":{}},"ICE_OTC_H":{"f":["CLOSE"],"o":{}},"ICE_OTC_JHO":{"f":["CLOSE"],"o":{}},"ICE_OTC_JKD":{"f":["CLOSE"],"o":{}},"ICE_OTC_JKM":{"f":["CLOSE"],"o":{}},"ICE_OTC_JSC":{"f":["CLOSE"],"o":{}},"ICE_OTC_LFH":{"f":["CLOSE"],"o":{}},"ICE_OTC_LFI":{"f":["CLOSE"],"o":{}},"ICE_OTC_MSV":{"f":["CLOSE"],"o":{}},"ICE_OTC_NGE":{"f":["CLOSE"],"o":{}},"ICE_OTC_PEJ":{"f":["CLOSE"],"o":{}},"ICE_OTC_RIK_FUT":{"f":["CLOSE"],"o":{}},"ICE_OTC_RIN_FUT":{"f":["CLOSE"],"o":{}},"ICE_OTC_TFN":{"f":["CLOSE"],"o":{}},"ICE_OTC_THE":{"f":["CLOSE"],"o":{}},"ICE_OTC_TMU":{"f":["CLOSE"],"o":{}},"ICE_OTC_TMW":{"f":["CLOSE"],"o":{}},"ICE_OTC_UK5":{"f":["CLOSE"],"o":{}},"ICE_PEAK_GREG":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_PEG_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_PSV_FIN_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_PSV_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_RBOB_1630":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_RBOB_MM":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_RICHB_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_ROTT_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_SWE_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_TFE_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_TFN_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_THE":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_TTF":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","MIDPOINT","OPEN","OPENINTEREST","OTCVOLUME","VOLATILITY","VOLUME","VWAP"],"o":{}},"ICE_TTF_1LF_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_TTF_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_UKAD_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_UKA_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_ULS_GO_FUT":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_WTI":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_WTI_1630":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_WTI_MM":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICE_WTI_PERMIAN":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{}},"ICE_WTI_SG_MM":{"f":["CLOSE","EXCHANGEFORPHYSICAL","EXCHANGEFORSWAP","HIGH","LOW","OPEN","OPENINTEREST","OTCVOLUME","VOLUME","VWAP"],"o":{"CLOSE":"PRICE"}},"ICIS_AGRI":{"f":["CLOSE","HIGH","LOW"],"o":{"CLOSE":"MID"}},"ICIS_BIO":{"f":["CLOSE","HIGH","LOW"],"o":{"CLOSE":"MID"}},"ICIS_CHEM":{"f":["CLOSE","HIGH","LOW"],"o":{"CLOSE":"MID"}},"ICIS_CRD":{"f":["CLOSE","HIGH","LOW"],"o":{"CLOSE":"MID"}},"ICIS_LMD_CHART":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"ICIS_LMD_GDES":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"ICIS_LMD_GFOB":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"ICIS_LMD_POOL":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"ICIS_PROD":{"f":["CLOSE","HIGH","LOW"],"o":{"CLOSE":"MID"}},"ICIS_SLNG_EAX":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"IDEXELFDER":{"f":["CLOSE","HIGH","LOW"],"o":{"CLOSE":"CLOSE"}},"IDEX_ELFUT":{"f":["CLOSE","HIGH","LOW"],"o":{"CLOSE":"CLOSE"}},"IPEX_15MIN":{"f":["CLOSE"],"o":{"CLOSE":"PRICE"}},"JAO_AUC":{"f":["CLOSE"],"o":{"CLOSE":"ALLOCATED"}},"MARKETVIEW":{"f":["CHANGE","CLOSE","HIGH","LAST","LOW","MID","MIDPOINT","OI","OPEN","VOLUME"],"o":{"CLOSE":"CLOSE","MIDPOINT":"MIDPOINT","VOLUME":"VOLUME"}},"US_BLS_CU":{"f":["CLOSE"],"o":{"CLOSE":"VALUE"}}}};
+const H22 = ["ENI","BKW","MV SYMBOL","FIELD","MV ROOT SYMBOL","GDM TEMPLATE CODE","MODEL URI","FREQUENCY","TIMEZONE","QUOTECAL","ROLLCAL","NAME","DESCRIPTION","UNIT","CURRENCY","GDM FREQUENCY","PRICE DATE","*MARKETBASIS","*PRODUCT","*SUPPLIERCD","*COMMODITY","*PERIODCD"];
+const H24 = H22.concat(["*BASECURRCD","*UNITSCD"]);
+const ALL_FIELDS = REF.fields;
+const $ = id => document.getElementById(id);
+
+let state = { headers: H24, symbols: [], selected: new Set(["OPEN","HIGH","LOW"]), overrides: {}, out: [] };
+
+function renderHeaders(h){
+  $("headers").innerHTML = h.map(x => `<span class="${x==="FIELD"||x==="MODEL URI"?"key":""}">${esc(x)}</span>`).join("");
+}
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+// Parse delimited text (handles quotes). Delimiter: tab if any tab present, else comma.
+function parseDelimited(text){
+  const delim = text.includes("\t") ? "\t" : ",";
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; }
+      else cell+=c;
+    } else {
+      if(c==='"' && cell==="") q=true;
+      else if(c===delim){row.push(cell);cell="";}
+      else if(c==="\n"||c==="\r"){ if(c==="\r"&&text[i+1]==="\n")i++; row.push(cell); rows.push(row); row=[]; cell=""; }
+      else cell+=c;
+    }
+  }
+  if(cell!==""||row.length){row.push(cell);rows.push(row);}
+  return {rows: rows.filter(r=>r.some(v=>v.trim()!=="")), delim};
+}
+
+function suffixFor(field, tmpl){
+  if(state.overrides[field]) return {s:state.overrides[field], src:"your override"};
+  const t = REF.tmpl[tmpl];
+  if(t && t.o[field]) return {s:t.o[field], src:"rule for "+tmpl};
+  if(REF.glob[field]) return {s:REF.glob[field], src:"general default"};
+  return {s:field, src:"field name"};
+}
+
+function readRows(){
+  const raw=$("input").value;
+  const msg=$("parseMsg");
+  state.symbols=[];
+  if(!raw.trim()){ msg.innerHTML=`<div class="msg err">Paste at least one mapping row first.</div>`; renderSymbols(); renderAll(); return; }
+  const {rows}=parseDelimited(raw);
+  let headers=null, body=rows;
+  const first=rows[0].map(v=>v.trim().toUpperCase());
+  if(first.includes("MV SYMBOL") && first.includes("MODEL URI")){ headers=rows[0].map(v=>v.trim()); body=rows.slice(1); }
+  const fmt=$("fmt").value;
+  if(!headers){
+    if(fmt==="24") headers=H24; else if(fmt==="22") headers=H22;
+    else { const maxLen=Math.max(...body.map(r=>r.length)); headers = maxLen>=24 ? H24 : H22; }
+  }
+  state.headers=headers; renderHeaders(headers);
+  const idx=k=>headers.findIndex(h=>h.toUpperCase()===k);
+  const iSym=idx("MV SYMBOL"), iField=idx("FIELD"), iUri=idx("MODEL URI"), iT=idx("GDM TEMPLATE CODE");
+  const problems=[];
+  if(iSym<0||iField<0||iUri<0){ msg.innerHTML=`<div class="msg err">The header row needs MV SYMBOL, FIELD and MODEL URI columns.</div>`; return; }
+  const bySym=new Map();
+  body.forEach((r,n)=>{
+    const cells=headers.map((_,i)=>r[i]??"");
+    if(r.length!==headers.length) problems.push(`Row ${n+1} has ${r.length} columns; expected ${headers.length}. ${r.length<headers.length?"Missing ones were left empty.":"Extra ones were dropped."}`);
+    const sym=cells[iSym].trim();
+    if(!sym){ problems.push(`Row ${n+1} has no MV SYMBOL and was skipped.`); return; }
+    if(!bySym.has(sym)) bySym.set(sym,[]);
+    bySym.get(sym).push(cells);
+  });
+  for(const [sym,list] of bySym){
+    const ref = list.find(c=>c[iField].trim().toUpperCase()==="CLOSE") || list[0];
+    const uri=ref[iUri].trim();
+    const s={sym, ref, existing:new Set(list.map(c=>c[iField].trim().toUpperCase())), tmpl:iT>=0?ref[iT].trim():"", uri, refField:ref[iField].trim().toUpperCase()};
+    if(!uri.includes("/")) problems.push(`${sym}: MODEL URI “${uri||"(empty)"}” has no “/”, so the ending can’t be swapped.`);
+    if(s.refField!=="CLOSE") problems.push(`${sym}: no CLOSE row found, so the ${s.refField||"first"} row is used as the reference.`);
+    state.symbols.push(s);
+  }
+  const keys=[...new Set(state.symbols.map(s=>s.sym))];
+  let html = `<div class="msg ok">Read ${body.length} row${body.length===1?"":"s"} for ${keys.length} symbol${keys.length===1?"":"s"} using ${headers.length} columns.</div>`;
+  if(problems.length) html+=`<div class="msg warn">Check these before exporting:<ul>${problems.slice(0,12).map(p=>`<li>${esc(p)}</li>`).join("")}${problems.length>12?`<li>…and ${problems.length-12} more</li>`:""}</ul></div>`;
+  msg.innerHTML=html;
+  state.idx={iSym,iField,iUri,iT};
+  renderSymbols(); renderAll();
+}
+
+function renderSymbols(){
+  const el=$("symbols");
+  if(!state.symbols.length){el.innerHTML="";return;}
+  el.innerHTML=`<div class="scroll"><table><thead><tr><th>MV symbol</th><th>Template</th><th>Reference row</th><th>MODEL URI</th><th>Fields already present</th></tr></thead><tbody>${
+    state.symbols.map(s=>`<tr><td class="mono">${esc(s.sym)}</td><td class="mono">${esc(s.tmpl||"–")}</td><td class="mono">${esc(s.refField)}</td><td class="mono">${esc(s.uri)}</td><td class="mono">${esc([...s.existing].join(", "))}</td></tr>`).join("")
+  }</tbody></table></div>`;
+}
+
+function renderChips(){
+  $("chips").innerHTML = ALL_FIELDS.map(f=>`<label class="chip ${state.selected.has(f)?"on":""}"><input type="checkbox" value="${esc(f)}" ${state.selected.has(f)?"checked":""}>${esc(f)}</label>`).join("");
+  $("chips").querySelectorAll("input").forEach(inp=>inp.addEventListener("change",e=>{
+    const f=e.target.value; e.target.checked?state.selected.add(f):state.selected.delete(f);
+    e.target.parentElement.classList.toggle("on",e.target.checked); renderAll();
+  }));
+}
+
+function selectedFields(){ return ALL_FIELDS.filter(f=>state.selected.has(f)); }
+
+function renderSuffixTable(){
+  const el=$("suffixTable"); const fields=selectedFields();
+  if(!fields.length){el.innerHTML=`<p class="empty">Select at least one field in step 2.</p>`;return;}
+  const tmpls=[...new Set(state.symbols.map(s=>s.tmpl))];
+  if(!tmpls.length) tmpls.push("");
+  const rows=fields.map(f=>{
+    const per=tmpls.map(t=>{const r=suffixFor(f,t);return {t,...r};});
+    const uniq=[...new Set(per.map(p=>p.s))];
+    const missing=tmpls.filter(t=>t && REF.tmpl[t] && !REF.tmpl[t].f.includes(f));
+    const unknown=tmpls.filter(t=>t && !REF.tmpl[t]);
+    const shown = state.overrides[f] ?? (uniq.length===1?uniq[0]:"");
+    const srcText = state.overrides[f] ? "your override" : per.map(p=>`${p.s} (${p.src})`).filter((v,i,a)=>a.indexOf(v)===i).join("; ");
+    let flags="";
+    if(missing.length) flags+=`<div class="flag">No ${esc(f)} rows exist for ${esc(missing.join(", "))} in the reference files. Confirm GDM has this column.</div>`;
+    if(unknown.length) flags+=`<div class="flag">Template ${esc(unknown.join(", "))} isn’t in the reference files.</div>`;
+    return `<tr><td class="mono">${esc(f)}</td><td><input type="text" class="suffix-input" data-f="${esc(f)}" value="${esc(shown)}" placeholder="${uniq.length>1?"varies by template":""}" aria-label="URI ending for ${esc(f)}"></td><td><div class="src">${esc(srcText)}</div>${flags}</td></tr>`;
+  }).join("");
+  el.innerHTML=`<div class="scroll"><table><thead><tr><th>Field</th><th>URI ending</th><th>Where it comes from</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  el.querySelectorAll(".suffix-input").forEach(inp=>inp.addEventListener("change",e=>{
+    const f=e.target.dataset.f, v=e.target.value.trim().replace(/^\/+/,"");
+    if(v) state.overrides[f]=v; else delete state.overrides[f];
+    renderSuffixTable(); renderOutput();
+  }));
+}
+
+function buildOutput(){
+  const out=[]; const warns=[]; let skipped=0;
+  if(!state.symbols.length) return {out,warns,skipped};
+  const {iField,iUri}=state.idx;
+  const skip=$("skipExisting").checked;
+  for(const s of state.symbols){
+    if($("incRef").checked) out.push({cells:s.ref.slice(),ref:true});
+    for(const f of selectedFields()){
+      if(skip && s.existing.has(f)){skipped++;continue;}
+      const cells=s.ref.slice();
+      cells[iField]=f;
+      const {s:suf}=suffixFor(f,s.tmpl);
+      const u=s.uri; const cut=u.lastIndexOf("/");
+      cells[iUri]= cut>=0 ? u.slice(0,cut+1)+suf : u;
+      out.push({cells,ref:false,field:f});
+    }
+  }
+  return {out,warns,skipped};
+}
+
+function toDelimited(rows,delim){
+  const q=v=>{v=String(v??""); return (delim===","&&/[",\n\r]/.test(v))||(delim==="\t"&&/[\t\n\r"]/.test(v)) ? '"'+v.replace(/"/g,'""')+'"' : v;};
+  return rows.map(r=>r.map(q).join(delim)).join("\r\n");
+}
+function exportRows(){
+  const rows=state.out.map(o=>o.cells);
+  if($("incHeader").checked) rows.unshift(state.headers);
+  return rows;
+}
+
+function renderOutput(){
+  const {out,skipped}=buildOutput(); state.out=out;
+  const created=out.filter(o=>!o.ref).length;
+  const has=created>0;
+  ["copyTsv","copyCsv","dlCsv"].forEach(id=>$(id).disabled=!has);
+  $("summary").innerHTML = state.symbols.length ? `<span><b>${created}</b> new row${created===1?"":"s"}</span><span><b>${state.symbols.length}</b> symbol${state.symbols.length===1?"":"s"}</span>${skipped?`<span><b>${skipped}</b> skipped because they already exist</span>`:""}` : "";
+  if(!state.symbols.length){$("output").innerHTML=`<p class="empty">Paste rows in step 1 and select “Read rows” to see the new mapping rows here.</p>`;return;}
+  if(!out.length){$("output").innerHTML=`<p class="empty">Nothing to create with the current selection.</p>`;return;}
+  const h=state.headers; const {iField,iUri}=state.idx;
+  const limit=200; const shown=out.slice(0,limit);
+  $("output").innerHTML=`<div class="scroll" style="max-height:460px;overflow:auto"><table><thead><tr>${h.map(x=>`<th>${esc(x)}</th>`).join("")}</tr></thead><tbody>${
+    shown.map(o=>`<tr class="${o.ref?"ref":""}">${o.cells.map((c,i)=>{
+      let v=esc(c);
+      if(!o.ref && i===iField) v=`<span class="changed">${v}</span>`;
+      if(!o.ref && i===iUri){const k=c.lastIndexOf("/"); v=esc(c.slice(0,k+1))+`<span class="changed">${esc(c.slice(k+1))}</span>`;}
+      return `<td class="mono">${v}</td>`;}).join("")}</tr>`).join("")
+  }</tbody></table></div>${out.length>limit?`<p class="src">Showing the first ${limit} of ${out.length} rows. Copy or download gets all of them.</p>`:""}`;
+}
+
+function renderAll(){ renderSuffixTable(); renderOutput(); }
+
+function toast(t){const el=$("toast");el.textContent=t;el.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove("show"),2200);}
+async function copyText(text,label){
+  try{ await navigator.clipboard.writeText(text); toast(label); }
+  catch(e){
+    const ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select();
+    let ok=false; try{ok=document.execCommand("copy");}catch(_){}
+    ta.remove(); toast(ok?label:"Copy was blocked by the browser. Try the download instead.");
+  }
+}
+
+$("parseBtn").addEventListener("click",readRows);
+$("clearBtn").addEventListener("click",()=>{$("input").value="";state.symbols=[];$("parseMsg").innerHTML="";renderSymbols();renderAll();});
+$("sampleBtn").addEventListener("click",()=>{
+  const r=["TRUE","","/NDEX.BEB_YEAR<0>","CLOSE","","ICE_BEFIN_FUT","model://ICEBEFINREL/EU.EL.BE.ICE.FIN.B.FUT.Y00/SETTLE","1D","GMT","HICEEDX","RICEELFINQY","EU.EL.BE.ICE.FIN.B.FUT.Y00","ICE Belgian Power Financial Base Futures - Belgian Grid Year 00","MWH","EUR","DB:1","B","BELGIUM","BASELOAD FINANCIAL","ICE","EUROPEAN POWER","Y00"];
+  $("input").value=H22.join("\t")+"\n"+r.join("\t"); $("fmt").value="auto"; readRows();
+});
+$("fmt").addEventListener("change",()=>{ if($("input").value.trim()) readRows(); else renderHeaders($("fmt").value==="22"?H22:H24); });
+$("presetOHL").addEventListener("click",()=>{state.selected=new Set(["OPEN","HIGH","LOW"]);renderChips();renderAll();});
+$("selAll").addEventListener("click",()=>{state.selected=new Set(ALL_FIELDS);renderChips();renderAll();});
+$("selNone").addEventListener("click",()=>{state.selected=new Set();renderChips();renderAll();});
+["skipExisting","incRef","incHeader"].forEach(id=>$(id).addEventListener("change",renderOutput));
+$("copyTsv").addEventListener("click",()=>copyText(toDelimited(exportRows(),"\t"),"Copied. Paste into Excel."));
+$("copyCsv").addEventListener("click",()=>copyText(toDelimited(exportRows(),","),"Copied as CSV."));
+
+$("dlCsv").hidden=false;
+$("dlCsv").addEventListener("click",()=>{
+  const name="GDM_MV_new_fields_"+new Date().toISOString().slice(0,10)+".csv";
+  const blob=new Blob(["\ufeff"+toDelimited(exportRows(),",")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast("Downloaded "+name);
+});
+
+renderHeaders(H24); renderChips(); renderAll();
+</script>
+</body>
+</html>
